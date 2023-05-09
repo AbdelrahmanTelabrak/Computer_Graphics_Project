@@ -1,0 +1,7 @@
+# depslib dependency file v1.0
+1680040551 source:d:\university\computer graphics\code\circle\main.cpp
+	<tchar.h>
+	<windows.h>
+	<bits/stdc++.h>
+	<math.h>
+

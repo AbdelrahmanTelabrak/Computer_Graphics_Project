@@ -1,0 +1,6 @@
+# depslib dependency file v1.0
+1681341362 source:d:\university\computer graphics\code\curve\main.cpp
+	<tchar.h>
+	<windows.h>
+	<bits/stdc++.h>
+
