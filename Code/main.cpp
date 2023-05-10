@@ -493,7 +493,7 @@ LPCSTR mouse=IDC_ARROW; //default for mouse
 int selectt = -1;
 int X1,Y1,X2,Y2;//inputs for line
 static bool stat = false;
-int sides=6; //sides for polygon
+int sides=5; //sides for polygon
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HDC hdc= GetDC(hwnd);
