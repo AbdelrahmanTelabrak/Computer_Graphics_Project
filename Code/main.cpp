@@ -9,6 +9,8 @@
 #include <bits/stdc++.h>
 using namespace std;
 
+#define MAXINT 1e9
+
 ///defines ============================================================= for algorithms
 #define Mouse_ARROW 0
 #define Mouse_HAND 1
@@ -20,6 +22,12 @@ using namespace std;
 #define ClippingRectanglePolygon 7
 #define ClippingSquarePoint 8
 #define ClippingSquareLine 9
+#define ConvexFilling 10
+#define GeneralFilling 11
+#define FloodFilling 12
+#define FloodFillingRecursive 13
+#define CircleLines 14
+#define CircleCircles 15
 ///defines =============================================================
 
 /*  Declare Windows procedure  */
@@ -413,8 +421,141 @@ void drawRectangle(HDC hdc, Vector& p1, double sideLen, double sidewidth, COLORR
 ///-------------------------------------------Clipping Algorithms-----------------
 
 
+///-------------------------------------------Filling Algorithms-------------------
 
+//---------------Convex Filling-------------
+vector<POINT> points;
+int numberOfPoints;
+const int MAXENTRIES = 600;
 
+void InitEntries(vector<pair<int, int>>& table)
+{
+    for(int i=0; i < MAXENTRIES;i++)
+    {
+        pair<int, int> e;e.first = MAXINT;e.second=-1;
+        table.push_back(e);
+    }
+}
+
+void ScanEdge(POINT v1,POINT v2,vector<pair<int, int>>& table)
+{
+    if(v1.y==v2.y)return;
+    if(v1.y>v2.y)swap(v1,v2);
+    double minv=(double)(v2.x-v1.x)/(v2.y-v1.y);
+    double x=v1.x;
+    int y=v1.y;
+    while(y<v2.y)
+    {
+        if(x<table[y].first)
+            table[y].first=(int)ceil(x);
+        if(x>table[y].second)
+            table[y].second=(int)floor(x);
+        cout<<table[y].first<<" "<<table[y].second<<"\n";
+        y++;
+        x+=minv;
+    }
+}
+
+void DrawSanLines(HDC hdc,vector<pair<int, int>> table,COLORREF color)
+{
+    for(int y=0;y<MAXENTRIES;y++)
+        if(table[y].first<table[y].second)
+            LineDDA(hdc, table[y].first, y, table[y].second, y);
+}
+
+void ConvexFill(HDC hdc,vector<POINT> p,int n,COLORREF color)
+{
+    vector<pair<int, int>> table;
+    InitEntries(table);
+    POINT v1=p[n-1];
+    for(int i=0;i<n;i++)
+    {
+        cout<<"in loop\n";
+        POINT v2=p[i];
+        ScanEdge(v1,v2,table);
+        v1=p[i];
+    }
+    DrawSanLines(hdc,table,color);
+}
+//--------------------------------------------------
+
+//----------------General Filling-------------------
+
+class EdgeInfo {
+public:
+    double xmin, minv;
+    int ymax;
+
+    EdgeInfo() {}
+
+    EdgeInfo(double xmin, double minv, int ymax) : xmin(xmin), minv(minv), ymax(ymax) {}
+};
+
+bool compareEdge(const EdgeInfo &edge1, const EdgeInfo &edge2) {
+    return edge1.xmin < edge2.xmin;
+}
+void drawOutline(HDC hdc, vector<POINT> points){
+    COLORREF c = RGB(0,0,0);
+    for (int i = 0; i < points.size(); ++i) {
+        if (i==points.size()-1)
+            LineDDA(hdc, points[i].x, points[i].y, points[0].x, points[0].y);
+        else
+            LineDDA(hdc, points[i].x, points[i].y, points[i+1].x, points[i+1].y);
+    }
+}
+
+EdgeInfo InitEdgeInfo(POINT &v1, POINT &v2) {
+    if (v1.y > v2.y)swap(v1, v2);
+    EdgeInfo info = EdgeInfo();
+    info.xmin = v1.x;
+    info.ymax = v2.y;
+    info.minv = (double) (v2.x - v1.x) / (v2.y - v1.y);
+    return info;
+}
+
+void InitEdgeTable(vector<POINT> points, int n, list<EdgeInfo> table[]) {
+    POINT v1 = points[n - 1];
+    for (int i = 0; i < n; i++) {
+        POINT v2 = points[i];
+        if (v1.y == v2.y) {
+            v1 = v2;
+            continue;
+        }
+        EdgeInfo rec = InitEdgeInfo(v1, v2);
+        table[v1.y].push_back(rec);
+        v1 = points[i];
+    }
+}
+
+void GeneralFill(HDC hdc, vector<POINT> points, int n, COLORREF c) {
+    drawOutline(hdc, points);
+    auto *table = new list<EdgeInfo>[MAXENTRIES];
+    InitEdgeTable(points, n, table);
+    int y = 0;
+    while (y < MAXENTRIES && table[y].size() == 0)y++;
+    if (y == MAXENTRIES)return;
+    list<EdgeInfo> ActiveList = table[y];
+    while (!ActiveList.empty()) {
+        ActiveList.sort(compareEdge);
+        for (auto it = ActiveList.begin(); it != ActiveList.end(); it++) {
+            int x1 = (int) ceil(it->xmin);
+            it++;
+            int x2 = (int) floor(it->xmin);
+            for (int x = x1; x <= x2; x++)SetPixel(hdc, x, y, c);
+        }
+        y++;
+        auto it = ActiveList.begin();
+        while (it != ActiveList.end())
+            if (y == it->ymax) it = ActiveList.erase(it); else it++;
+        for (auto it = ActiveList.begin(); it != ActiveList.end(); it++)
+            it->xmin += it->minv;
+        ActiveList.insert(ActiveList.end(), table[y].begin(), table[y].end());
+    }
+    cout<<ActiveList.size()<<'\n';
+    delete[] table;
+}
+
+//-----------------------------------------------------
 
 int ListSize=0;
 HMENU MyMenu; ///only creates a variable that can hold a reference to a menu that will be created later using the appropriate Windows API functions.
@@ -484,6 +625,20 @@ void CreateMenus(HWND hwnd){
         AppendMenu(MyMenu,MF_POPUP,(UINT_PTR)Clipping,"Clipping algorithms");
 
     ///(s) Clipping algorithms using Rectangle as Clipping Window[Point ,Line, Polygon
+
+    ///(O&P&K&L) Filling algorithms
+    HMENU Filling = CreateMenu();
+    ListSize = 6;
+    char * fillings[ListSize] = {"Convex","General", "Flood", "Flood (Recursive)", "Circle with lines", "Circle with circles"};
+    int fillings2[ListSize] = {ConvexFilling, GeneralFilling, FloodFilling , FloodFillingRecursive , CircleLines , CircleCircles };
+    for(int i=0;i<ListSize;i++){
+        AppendMenu(Filling,MF_STRING,fillings2[i],fillings[i]);
+        if(i!=ListSize-1){
+            AppendMenu(Filling,MF_SEPARATOR,NULL,NULL); //separate line
+        }
+    }
+    AppendMenu(MyMenu,MF_POPUP,(UINT_PTR)Filling,"Filling");
+
 
     SetMenu(hwnd,MyMenu);
 }
@@ -555,6 +710,35 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 case ClippingSquareLine:
                     click=0;
                     selectt = 7;
+                    break;
+                case ConvexFilling:
+                    click=0;
+                    selectt = 8;
+                    cout<<"Enter the Number of points:\n";
+                    cin>>numberOfPoints;
+                    break;
+                case GeneralFilling:
+                    click=0;
+                    selectt = 9;
+                    cout<<"Enter the Number of points:\n";
+                    cin>>numberOfPoints;
+                    break;
+                case FloodFilling:
+                    click=0;
+                    selectt = 10;
+
+                    break;
+                case FloodFillingRecursive :
+                    click=0;
+                    selectt = 11;
+                    break;
+                case CircleLines:
+                    click=0;
+                    selectt = 12;
+                    break;
+                case CircleCircles:
+                    click=0;
+                    selectt = 13;
                     break;
             }
             break;
@@ -775,6 +959,38 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             }
         }
         ///for clipping Square Line ---------
+
+        ///For Convex Filling --------
+        else if (selectt==8){
+            if(click==numberOfPoints){
+                ConvexFill(hdc, points, numberOfPoints, color);
+                click=0;
+                points.clear();
+                break;
+            }
+            POINT pt;
+            pt.x = LOWORD(lParam);
+            pt.y = HIWORD(lParam);
+            points.push_back(pt);
+            click++;
+        }
+        ///---------------------------
+
+        ///For General Filling
+        else if (selectt=9){
+            if(click==numberOfPoints){
+                GeneralFill(hdc, points, numberOfPoints, color);
+                click=0;
+                points.clear();
+                break;
+            }
+            POINT pt;
+            pt.x = LOWORD(lParam);
+            pt.y = HIWORD(lParam);
+            points.push_back(pt);
+            click++;
+        }
+
             break;
         case WM_SETCURSOR:
             SetCursor(LoadCursor(NULL,mouse));
