@@ -28,6 +28,7 @@ using namespace std;
 #define FloodFillingRecursive 13
 #define CircleLines 14
 #define CircleCircles 15
+#define ColorButton 16
 ///defines =============================================================
 
 /*  Declare Windows procedure  */
@@ -74,13 +75,23 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
            WS_OVERLAPPEDWINDOW, /* default window */
            CW_USEDEFAULT,       /* Windows decides the position */
            CW_USEDEFAULT,       /* where the window ends up on the screen */
-           544,                 /* The programs width */
-           375,                 /* and height in pixels */
+           800,                 /* The programs width */
+           600,                 /* and height in pixels */
            HWND_DESKTOP,        /* The window is a child-window to desktop */
            NULL,                /* No menu */
            hThisInstance,       /* Program Instance handler */
            NULL                 /* No Window Creation data */
            );
+    HWND buttonHandle = CreateWindow(
+            _T("BUTTON"),          // button class name
+            _T("Color"),        // button text
+            WS_VISIBLE | WS_CHILD, // button styles
+            710, 0, 80, 25,     // button position and size
+            hwnd,                  // parent window handle
+            (HMENU) ColorButton,              // button identifier
+            NULL,                  // instance handle
+            NULL                   // no additional data
+    );
 
     /* Make the window visible on the screen */
     ShowWindow (hwnd, nCmdShow);
@@ -557,6 +568,24 @@ void GeneralFill(HDC hdc, vector<POINT> points, int n, COLORREF c) {
 
 //-----------------------------------------------------
 
+///--------------------------Choose Color-----------------
+COLORREF ChooseColor(HWND hwndParent, COLORREF crInitial) {
+    static COLORREF customColors[16] = {0};
+    CHOOSECOLOR cc = {0};
+    cc.lStructSize = sizeof(cc);
+    cc.hwndOwner = hwndParent;
+    cc.rgbResult = crInitial;
+    cc.lpCustColors = customColors;
+    cc.Flags = CC_FULLOPEN | CC_RGBINIT;
+
+    if (ChooseColor(&cc)) {
+        return cc.rgbResult;
+    } else {
+        return crInitial;
+    }
+}
+///------------------------------------------------------
+
 int ListSize=0;
 HMENU MyMenu; ///only creates a variable that can hold a reference to a menu that will be created later using the appropriate Windows API functions.
 void CreateMenus(HWND hwnd){
@@ -739,6 +768,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 case CircleCircles:
                     click=0;
                     selectt = 13;
+                    break;
+                case ColorButton:
+                    color = ChooseColor(hwnd, RGB(0,0,0));
                     break;
             }
             break;
