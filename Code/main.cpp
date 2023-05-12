@@ -35,6 +35,7 @@ using namespace std;
 #define EllipseDirect 20
 #define EllipsePolar 21
 #define EllipseMidPoint 22
+#define ClearButton 23
 
 ///defines =============================================================
 
@@ -89,13 +90,23 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
            hThisInstance,       /* Program Instance handler */
            NULL                 /* No Window Creation data */
            );
-    HWND buttonHandle = CreateWindow(
+    HWND colorButtonHandle = CreateWindow(
             _T("BUTTON"),          // button class name
             _T("Color"),        // button text
             WS_VISIBLE | WS_CHILD, // button styles
             710, 0, 80, 25,     // button position and size
             hwnd,                  // parent window handle
             (HMENU) ColorButton,              // button identifier
+            NULL,                  // instance handle
+            NULL                   // no additional data
+    );
+    HWND clearButtonHandle = CreateWindow(
+            _T("BUTTON"),          // button class name
+            _T("Clear"),        // button text
+            WS_VISIBLE | WS_CHILD, // button styles
+            710, 30, 80, 25,     // button position and size
+            hwnd,                  // parent window handle
+            (HMENU) ClearButton,              // button identifier
             NULL,                  // instance handle
             NULL                   // no additional data
     );
@@ -615,7 +626,94 @@ void FloodFillRec(HDC hdc,int x,int y,COLORREF Cb,COLORREF Cf)
 }
 //---------------------------------------------------------------------
 
+//---------------------Fill circle quarter with circles--------------
+void circleQuarterCircles(HDC hdc,int xc,int yc, int R, int quarter, COLORREF color){
 
+    double dtheta = 1.0/R;
+    for (double theta = 0; theta<6.28; theta +=dtheta){
+        double x = xc + R*cos(theta);
+        double y = yc + R*sin(theta);
+        SetPixel(hdc, round(x), round(y), color);
+        if (quarter==1){
+            if(theta>=6.28*0.75 && theta <=6.28){
+                for (double i = 0.0; i<1;i+=0.2){
+                    x = xc + R*i*cos(theta);
+                    y = yc + R*i*sin(theta);
+                    SetPixel(hdc, x, y, color);
+                }
+            }
+        }
+        else if (quarter==2){
+
+            if(theta>=6.28*0.5 && theta <=6.28*0.75){
+                for (double i = 0.0; i<1;i+=0.2){
+                    x = xc + R*i*cos(theta);
+                    y = yc + R*i*sin(theta);
+                    SetPixel(hdc, x, y, color);
+                }
+            }
+        }
+        else if (quarter==3){
+
+
+            if(theta>=6.28*0.25 && theta <=6.28*0.5){
+                for (double i = 0.0; i<1;i+=0.2){
+                    x = xc + R*i*cos(theta);
+                    y = yc + R*i*sin(theta);
+                    SetPixel(hdc, x, y, color);
+                }
+            }
+        }
+        else if (quarter==4){
+
+            if(theta>=0 && theta <=6.28*0.25){
+                for (double i = 0.0; i<1;i+=0.2){
+                    x = xc + R*i*cos(theta);
+                    y = yc + R*i*sin(theta);
+                    SetPixel(hdc, x, y, color);
+                }
+            }
+        }
+    }
+}
+
+//---------------------------------------------------------
+
+//------------Fill circle quarters with lines------------
+void circleQuarterLines(HDC hdc,int xc,int yc, int R, int quarter, COLORREF color){
+
+    double dtheta = 1.0/R;
+    for (double theta = 0; theta<6.28; theta +=dtheta){
+        double x = xc + R*cos(theta);
+        double y = yc + R*sin(theta);
+        SetPixel(hdc, round(x), round(y), color);
+        if (quarter==1){
+            if(theta>=6.28*0.75 && theta <=6.28){
+                LineDDA(hdc, xc, yc, x, y);
+
+
+            }
+        }
+        else if (quarter==2){
+            if(theta>=6.28*0.5 && theta <=6.28*0.75){
+                LineDDA(hdc, xc, yc, x, y);
+
+            }
+        }
+        else if (quarter==3){
+            if(theta>=6.28*0.25 && theta <=6.28*0.5){
+                LineDDA(hdc, xc, yc, x, y);
+            }
+        }
+        else if (quarter==4){
+            if(theta>=0 && theta <=6.28*0.25){
+                LineDDA(hdc, xc, yc, x, y);
+            }
+        }
+    }
+}
+
+//-------------------------------------------------------
 /*********************************/
 int Round(double x) {
     return (int)(x + 0.5);
@@ -1030,6 +1128,8 @@ int selectt = -1;
 int X1,Y1,X2,Y2;//inputs for line
 static bool stat = false;
 int sides=5; //sides for polygon
+int circleQuarter; //The number of quarter that will be filled (lines or circles)
+int circleRadius = 50; //The radius of the circle
 LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     HDC hdc= GetDC(hwnd);
@@ -1119,10 +1219,14 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     break;
                 case CircleLines:
                     click=0;
+                    cout<<"Enter the number of the quarter you want to fill\n";
+                    cin>>circleQuarter;
                     selectt = 12;
                     break;
                 case CircleCircles:
                     click=0;
+                    cout<<"Enter the number of the quarter you want to fill\n";
+                    cin>>circleQuarter;
                     selectt = 13;
                     break;
                 case ColorButton:
@@ -1151,7 +1255,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 case EllipseMidPoint:
                     selectt = 22;
                     break;
-
+                case ClearButton:
+                    InvalidateRect(hwnd, NULL, TRUE);
+                    break;
 
             }
             break;
@@ -1416,6 +1522,54 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         //------------Recursive Flood Filling algorithm-------------
         else if (selectt==11){
             FloodFillRec(hdc, X2, Y2, color, fillColor);
+        }
+
+        //------------Fill Circle quarter with lines---------------
+        else if (selectt==12){
+            if (circleQuarter==1){
+                LineDDA(hdc, X2, Y2, X2, round(Y2-circleRadius));
+                LineDDA(hdc, X2, Y2, round(X2+circleRadius), Y2);
+            }
+            else if (circleQuarter==2){
+                LineDDA(hdc, X2, Y2, X2, round(Y2-circleRadius));
+                LineDDA(hdc, X2, Y2, round(X2-circleRadius), Y2);
+
+            }
+            else if (circleQuarter==3){
+                LineDDA(hdc, X2, Y2, X2, round(Y2+circleRadius));
+                LineDDA(hdc, X2, Y2, round(X2-circleRadius), Y2);
+
+            }
+            else if (circleQuarter==4){
+                LineDDA(hdc, X2, Y2, X2, round(Y2+circleRadius));
+                LineDDA(hdc, X2, Y2, round(X2+circleRadius), Y2);
+
+            }
+            circleQuarterLines(hdc, X2, Y2, circleRadius, circleQuarter, color);
+        }
+
+        //------------Fill Circle quarter with circles---------------
+        else if (selectt==13){
+            if (circleQuarter==1){
+                LineDDA(hdc, X2, Y2, X2, round(Y2-circleRadius));
+                LineDDA(hdc, X2, Y2, round(X2+circleRadius), Y2);
+            }
+            else if (circleQuarter==2){
+                LineDDA(hdc, X2, Y2, X2, round(Y2-circleRadius));
+                LineDDA(hdc, X2, Y2, round(X2-circleRadius), Y2);
+
+            }
+            else if (circleQuarter==3){
+                LineDDA(hdc, X2, Y2, X2, round(Y2+circleRadius));
+                LineDDA(hdc, X2, Y2, round(X2-circleRadius), Y2);
+
+            }
+            else if (circleQuarter==4){
+                LineDDA(hdc, X2, Y2, X2, round(Y2+circleRadius));
+                LineDDA(hdc, X2, Y2, round(X2+circleRadius), Y2);
+
+            }
+            circleQuarterCircles(hdc, X2, Y2, circleRadius, circleQuarter, color);
         }
 
         //Filling Square with Hermit Curve
