@@ -29,6 +29,8 @@ using namespace std;
 #define CircleLines 14
 #define CircleCircles 15
 #define ColorButton 16
+#define HermiteSquare 17
+#define BezierRectangle 18
 ///defines =============================================================
 
 /*  Declare Windows procedure  */
@@ -568,6 +570,123 @@ void GeneralFill(HDC hdc, vector<POINT> points, int n, COLORREF c) {
 
 //-----------------------------------------------------
 
+
+/*********************************/
+int Round(double x) {
+    return (int)(x + 0.5);
+}
+class Point {
+public:
+    float x, y;
+    Point() : x(0), y(0) {}
+
+    Point(float x, float y) : x(x), y(y) {}
+
+    Point(const Point& other) : x(other.x), y(other.y) {}
+
+};
+
+class Vector4 {
+public:
+    Point p1, p2, p3, p4;
+    Vector4(const Point& p0, const Point& p1, const Point& p2, const Point& p3): p1(p1), p2(p2), p3(p3), p4(p4) {}
+
+};
+
+//------------------Filling Rectangle with Bezier Curve-------------
+void drawBezier(HDC hdc, const Vector4& bezier, COLORREF color, int limitX, int limitY) {
+    int a3 = -bezier.p1.x + 3 * bezier.p2.x - 3 * bezier.p3.x + bezier.p4.x;
+    int a2 = 3 * bezier.p1.x - 6 * bezier.p2.x + 3 * bezier.p3.x;
+    int a1 = -3 * bezier.p1.x + 3 * bezier.p2.x;
+    int a0 = bezier.p1.x;
+
+    int b3 = -bezier.p1.y + 3 * bezier.p2.y - 3 * bezier.p3.y + bezier.p4.y;
+    int b2 = 3 * bezier.p1.y - 6 * bezier.p2.y + 3 * bezier.p3.y;
+    int b1 = -3 * bezier.p1.y + 3 * bezier.p2.y;
+    int b0 = bezier.p1.y;
+
+    double dt = 0.0001;
+    for (double t = 0; t <= 1; t += dt)
+    {
+        int x = a0 + a1 * t + a2 * t * t + a3 * t * t * t;
+        int y = b0 + b1 * t + b2 * t * t + b3 * t * t * t;
+        if (x > limitX && y > limitY)
+            SetPixel(hdc, x, y, color);
+
+    }
+}
+
+void fillingRectangleWithBezier(HDC hdc, Point RecPoint1, Point RecPoint2, Point RecPoint3, Point RecPoint4) {
+    LineParametric(hdc, RecPoint1.x, RecPoint1.y, RecPoint2.x, RecPoint2.y);
+    LineParametric(hdc, RecPoint2.x, RecPoint2.y, RecPoint3.x, RecPoint3.y);
+    LineParametric(hdc, RecPoint3.x, RecPoint3.y, RecPoint4.x, RecPoint4.y);
+    LineParametric(hdc, RecPoint4.x, RecPoint4.y, RecPoint1.x, RecPoint1.y);
+
+    for (int i = RecPoint1.y, f = 0; i < RecPoint2.y && f < 2; i += 4) {
+        Point
+            p1(RecPoint1.x, RecPoint1.y),
+            p2(RecPoint1.x, i),
+            p3(RecPoint4.x, i),
+            p4(RecPoint4.x, RecPoint4.y);
+
+
+        Vector4 bezier(p1, p2, p3, p4);
+        drawBezier(hdc, bezier, RGB(0, 255, 0), p1.x, p1.y);
+
+
+
+    }
+
+
+}
+
+
+//------------------Filling Square with Hermit Curve-------------
+
+void drawHermite(HDC hdc, const Vector4& hermite, COLORREF color, int limitX, int limitY) {
+    int a3 = -2 * hermite.p2.x + 2 * hermite.p1.x + hermite.p3.x + hermite.p4.x;
+    int a2 = 3 * hermite.p2.x - 3 * hermite.p1.x - 2 * hermite.p3.x - hermite.p4.x;
+    int a1 = hermite.p3.x;
+    int a0 = hermite.p1.x;
+
+    int b3 = -2 * hermite.p2.y + 2 * hermite.p1.y + hermite.p3.y + hermite.p4.y;
+    int b2 = 3 * hermite.p2.y - 3 * hermite.p1.y - 2 * hermite.p3.y - hermite.p4.y;
+    int b1 = hermite.p3.y;
+    int b0 = hermite.p1.y;
+
+    double dt = 0.0001;
+    for (double t = 0; t <= 1; t += dt)
+    {
+        int x = a0 + a1 * t + a2 * t * t + a3 * t * t * t;
+        int y = b0 + b1 * t + b2 * t * t + b3 * t * t * t;
+        if (x > limitX && y < limitY) SetPixel(hdc, x, y, color);
+    }
+}
+
+void fillingSquareWithHermite(HDC hdc, Point RecPoint1, Point RecPoint2, Point RecPoint3, Point RecPoint4) {
+    LineParametric(hdc, RecPoint1.x, RecPoint1.y, RecPoint2.x, RecPoint2.y);
+    LineParametric(hdc, RecPoint2.x, RecPoint2.y, RecPoint3.x, RecPoint3.y);
+    LineParametric(hdc, RecPoint3.x, RecPoint3.y, RecPoint4.x, RecPoint4.y);
+    LineParametric(hdc, RecPoint4.x, RecPoint4.y, RecPoint1.x, RecPoint1.y);
+
+    for (int i = RecPoint1.y; i < RecPoint2.y ; i += 3) {
+        int u1X = RecPoint2.x - RecPoint1.x, u1Y = RecPoint2.y - RecPoint1.y;
+        int u2X = RecPoint3.x - RecPoint4.x, u2Y = RecPoint3.y - RecPoint4.y;
+        Point
+            p1(RecPoint1.x, i),
+            p2(RecPoint4.x, i),
+            p3(0, u1Y),
+            p4(0, u2Y);
+
+        Vector4 bezier(p1, p2, p3, p4);
+        drawHermite(hdc, bezier, RGB(0, 255, 0), p1.x, RecPoint3.y);
+    }
+
+
+}
+
+
+
 ///--------------------------Choose Color-----------------
 COLORREF ChooseColor(HWND hwndParent, COLORREF crInitial) {
     static COLORREF customColors[16] = {0};
@@ -666,7 +785,11 @@ void CreateMenus(HWND hwnd){
             AppendMenu(Filling,MF_SEPARATOR,NULL,NULL); //separate line
         }
     }
-    AppendMenu(MyMenu,MF_POPUP,(UINT_PTR)Filling,"Filling");
+    AppendMenu(MyMenu, MF_POPUP, (UINT_PTR)Filling, "Filling");
+    AppendMenu(Filling, MF_SEPARATOR, NULL, NULL);
+    AppendMenu(Filling,MF_POPUP,(UINT_PTR)BezierRectangle,"Bezier");
+    AppendMenu(Filling, MF_SEPARATOR, NULL, NULL);
+    AppendMenu(Filling, MF_POPUP, (UINT_PTR)HermiteSquare, "Hermite");
 
 
     SetMenu(hwnd,MyMenu);
@@ -771,6 +894,15 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     break;
                 case ColorButton:
                     color = ChooseColor(hwnd, RGB(0,0,0));
+                    break;
+                case HermiteSquare:
+                    click = 0;
+                    selectt = 17;
+                    break;
+                case BezierRectangle:
+                    selectt = 18;
+                    click = 0;
+
                     break;
             }
             break;
@@ -1009,7 +1141,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         ///---------------------------
 
         ///For General Filling
-        else if (selectt=9){
+        else if (selectt==9){
             if(click==numberOfPoints){
                 GeneralFill(hdc, points, numberOfPoints, color);
                 click=0;
@@ -1021,6 +1153,26 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             pt.y = HIWORD(lParam);
             points.push_back(pt);
             click++;
+        }
+
+        //Filling Square with Hermit Curve
+        else if (selectt == 17) {
+            Point p1(50, 50);
+            Point p2(50, 350);
+            Point p3(400, 350);
+            Point p4(400, 50);
+            cout << " Hermite";
+            fillingSquareWithHermite(hdc, p1, p2, p3, p4);
+
+        }
+        //Filling Rectangle with Bezier Curve
+        else if (selectt == 18) {
+            Point p1(100, 150);
+            Point p2(100, 400);
+            Point p3(300, 400);
+            Point p4(300, 150);
+            fillingRectangleWithBezier(hdc, p1, p2, p3, p4);
+
         }
 
             break;
