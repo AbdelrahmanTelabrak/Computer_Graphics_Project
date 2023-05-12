@@ -692,6 +692,47 @@ void fillingSquareWithHermite(HDC hdc, Point RecPoint1, Point RecPoint2, Point R
 }
 
 // ----------------------Spline Curves -----------------------------------------//
+void hermitMatrixCurve(HDC hdc, Vector& p1, Vector& T1, Vector& p2, Vector& T2)
+{
+    double a0 = p1[0], a1 = T1[0],
+           a2 = -3 * p1[0] - 2 * T1[0] + 3 * p2[0] - T2[0],
+           a3 = 2 * p1[0] + T1[0] - 2 * p2[0] + T2[0];
+
+    double b0 = p1[1], b1 = T1[1],
+           b2 = -3 * p1[1] - 2 * T1[1] + 3 * p2[1] - T2[1],
+           b3 = 2 * p1[1] + T1[1] - 2 * p2[1] + T2[1];
+
+    for (double t = 0; t <= 1; t += 0.001)
+    {
+        double t2 = t * t, t3 = t2 * t;
+        double x = a0 + a1 * t + a2 * t2 + a3 * t3;
+        double y = b0 + b1 * t + b2 * t2 + b3 * t3;
+        SetPixel(hdc, Round(x), Round(y), color);
+    }
+}
+
+void DrawCardinalSpline(HDC hdc, Vector P[], double d)
+{
+    Vector T[numberOfPoints]; //contain all sloopes
+    T[0][0] = ((d / 2) * (P[1][0] - P[0][0]));
+    T[0][1] = ((d / 2) * (P[1][1] - P[0][1]));
+
+    for (int i = 1; i < numberOfPoints - 1; i++)
+    {
+        T[i][0] = ((d / 2) * (P[i + 1][0] - P[i - 1][0]));
+        T[i][1] = ((d / 2) * (P[i + 1][1] - P[i - 1][1]));
+    }
+    T[numberOfPoints - 1][0] = ((d / 2) * (P[numberOfPoints - 1][0] - P[numberOfPoints - 2][0]));
+    T[numberOfPoints - 1][1] = ((d / 2) * (P[numberOfPoints - 1][1] - P[numberOfPoints - 2][1]));
+
+    for (int i = 0; i < numberOfPoints - 1; i++)
+    {
+        hermitMatrixCurve(hdc, P[i], T[i], P[i + 1], T[i + 1]);
+    }
+}
+
+
+// ----------------------Spline Curves -----------------------------------------//
 
 
 //----------------------------------Drawing Ellipse------------------------------//
@@ -814,21 +855,21 @@ DrawEllipse_MidPoint(HDC hdc , int xc , int yc , int A , int B , COLORREF color)
 
 
 ///--------------------------Choose Color-----------------
-//COLORREF ChooseColor(HWND hwndParent, COLORREF crInitial) {
-//    static COLORREF customColors[16] = {0};
-//    CHOOSECOLOR cc = {0};
-//    cc.lStructSize = sizeof(cc);
-//    cc.hwndOwner = hwndParent;
-//    cc.rgbResult = crInitial;
-//    cc.lpCustColors = customColors;
-//    cc.Flags = CC_FULLOPEN | CC_RGBINIT;
-//
-//    if (ChooseColor(&cc)) {
-//        return cc.rgbResult;
-//    } else {
-//        return crInitial;
-//    }
-//}
+COLORREF ChooseColor(HWND hwndParent, COLORREF crInitial) {
+    static COLORREF customColors[16] = {0};
+    CHOOSECOLOR cc = {0};
+    cc.lStructSize = sizeof(cc);
+    cc.hwndOwner = hwndParent;
+    cc.rgbResult = crInitial;
+    cc.lpCustColors = customColors;
+    cc.Flags = CC_FULLOPEN | CC_RGBINIT;
+
+    if (ChooseColor(&cc)) {
+        return cc.rgbResult;
+    } else {
+        return crInitial;
+    }
+}
 ///------------------------------------------------------
 
 int ListSize=0;
@@ -967,7 +1008,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 
     /// Variables for Spline
-    static vector<Point> pts;
+    static Vector pts[100]; ;
 
 
 
@@ -1042,9 +1083,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     click=0;
                     selectt = 13;
                     break;
-//                case ColorButton:
-//                    color = ChooseColor(hwnd, RGB(0,0,0));
-//                    break;
+                case ColorButton:
+                    color = ChooseColor(hwnd, RGB(0,0,0));
+                    break;
                 case HermiteSquare:
                     click = 0;
                     selectt = 17;
@@ -1054,8 +1095,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     click = 0;
                     break;
                 case SplineCurve:
+                    click=0;
                     selectt = 19;
-                    click = 0;
+                    cout<<"Enter the Number of points:\n";
+                    cin>>numberOfPoints;
                     break;
                 case EllipseDirect:
                     selectt = 20;
@@ -1345,19 +1388,14 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         /// ------- Draw Cardinal Spline curve --------
         else if(selectt == 19)
         {
-//            int NumOfpoints=0;
-//            cout << "Enter The number of Points\n";
-//            cin >> NumOfpoints;
-//            int  N = NumOfpoints;
-//            Point pt;
-//            while(NumOfpoints -- )
-//            {
-//              pt.x = LOWORD(lParam);
-//              pt.y = HIWORD(lParam);
-//              pts.push_back(pt);
-//            }
-            //DrawCardinalSpline(hdc , pts, 4 , 99);
 
+            pts[idx]=Vector(LOWORD(lParam), HIWORD(lParam));
+            if(idx!=numberOfPoints-1){
+                idx++;
+            }else{
+                DrawCardinalSpline(hdc,pts,1);
+                idx=0;
+            }
         }
 
         /// ---- Draw Ellipse --- ///
