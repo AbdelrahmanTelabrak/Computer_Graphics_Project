@@ -31,6 +31,11 @@ using namespace std;
 #define ColorButton 16
 #define HermiteSquare 17
 #define BezierRectangle 18
+#define SplineCurve 19
+#define EliipseDirect 20
+#define EllipsePolar 21
+#define EliipseMidPoint 22
+
 ///defines =============================================================
 
 /*  Declare Windows procedure  */
@@ -643,7 +648,7 @@ void fillingRectangleWithBezier(HDC hdc, Point RecPoint1, Point RecPoint2, Point
 
 //------------------Filling Square with Hermit Curve-------------
 
-void drawHermite(HDC hdc, const Vector4& hermite, COLORREF color, int limitX, int limitY) {
+void drawHermite(HDC hdc, const Vector4& hermite,COLORREF color, int limitX, int limitY) {
     int a3 = -2 * hermite.p2.x + 2 * hermite.p1.x + hermite.p3.x + hermite.p4.x;
     int a2 = 3 * hermite.p2.x - 3 * hermite.p1.x - 2 * hermite.p3.x - hermite.p4.x;
     int a1 = hermite.p3.x;
@@ -662,6 +667,8 @@ void drawHermite(HDC hdc, const Vector4& hermite, COLORREF color, int limitX, in
         if (x > limitX && y < limitY) SetPixel(hdc, x, y, color);
     }
 }
+
+
 
 void fillingSquareWithHermite(HDC hdc, Point RecPoint1, Point RecPoint2, Point RecPoint3, Point RecPoint4) {
     LineParametric(hdc, RecPoint1.x, RecPoint1.y, RecPoint2.x, RecPoint2.y);
@@ -682,6 +689,137 @@ void fillingSquareWithHermite(HDC hdc, Point RecPoint1, Point RecPoint2, Point R
         drawHermite(hdc, bezier, RGB(0, 255, 0), p1.x, RecPoint3.y);
     }
 
+
+}
+
+// ----------------------Spline Curves -----------------------------------------//
+void DrawCardinalSpline(HDC hdc, Vertex P[] ,int n,double c)
+{
+    double c1=1-c;
+    Vertex T0(c1*(P[2].x-P[0].x),c1*(P[2].y-P[0].y));
+    for(int i=2;i<n-1;i++)
+    {
+    Vertex T1(c1*(P[i+1].x-P[i-1].x),c1*(P[i+1].y-P[i-1].y));
+    Vector4 v(P[i-1] , T0 , P[i] , T1);
+    drawHermite(hdc,v , RGB(0, 255, 0) , INT_MIN ,  INT_MAX);
+    T0=T1;
+    }
+}
+
+//----------------------------------Drawing Ellipse------------------------------// 
+
+
+void Draw4Points(HDC hdc,int xc,int yc, int a, int b,COLORREF color)
+{
+    SetPixel(hdc, xc+a, yc+b, color);
+    SetPixel(hdc, xc+a, yc-b, color);
+    SetPixel(hdc, xc-a, yc+b, color);
+    SetPixel(hdc, xc-a, yc-b, color);
+}
+ 
+
+
+DrawEllipse_DirectCartesian(HDC hdc , int xc , int yc , int A , int B , COLORREF color)
+{
+    // first start at 0 , B --> and take unit step in the x axis
+    // untill we reach the boundary between region 1 and region 2
+    // then we take unit steps in y
+
+    int x = 0 , y = B ;
+    int dx = 2*(B*B)*x;
+    int dy = 2*(A*A)*y;
+    Draw4Points(hdc , xc , yc ,x , y, color);
+    int A2 = (A*A);
+    int B2 = (B*B);
+
+    int A2_B2 = (A2*B2);
+
+    while(dy > dx)
+    {
+        x ++;
+        y = round((double) ( sqrt((double) (A2_B2) - (B2 * x*x) ) ) / A );
+
+        Draw4Points(hdc , xc , yc , x , y , color);
+        dx  = 2*(B2) * x;
+        dy  = 2*(A2) * y;
+
+    }
+    while(y >= 0)
+    {
+        y -- ;
+        x  =  round ( (double) ( sqrt((double) (A2_B2) - (A2 * y*y) ) ) / B) ;
+
+        Draw4Points(hdc , xc , yc , x , y , color);
+    }
+
+
+}
+
+
+DrawEllipse_Polar(HDC hdc , int xc , int yc , int A , int B , COLORREF color)
+{
+    int x = A , y = 0;
+    int mx = std::max(A , B);
+    double theta =0 , dtheta = (1.0/mx);
+    Draw4Points(hdc , xc , yc , x , y , color);
+    while(theta <= 2*M_PI)
+    {
+        theta+= dtheta;
+        x = round(A*cos(theta));
+        y = round(B*sin(theta));
+        Draw4Points(hdc , xc , yc , x , y , color);
+    }
+}
+
+DrawEllipse_MidPoint(HDC hdc , int xc , int yc , int A , int B , COLORREF color)
+{
+    // First Draw the first Region
+    int x = 0 , y = B ;
+    int d = (B*B) + (0.25 * (A*A)) - ((A*A)*B);
+    int dx = 2*(B*B)*x;
+    int dy = 2*(A*A)*y;
+
+    Draw4Points(hdc , xc , yc , x , y, color);
+
+    // Draw Region 1 ;
+    while(dx < dy)
+    {
+        if(d <  0)
+        {
+
+            dx += 2*(B*B);
+            d += dx + (B*B);
+        }
+        else{
+            y --;
+            dx += 2 *(B*B);
+            dy -= 2*(A*A);
+            d += dx - dy + (B*B);
+        }
+        x ++;
+        Draw4Points(hdc , xc , yc , x ,y , color);
+
+    }
+    // Calculate d initial for region 2
+    int d2 = ((B*B)*((x + 0.5)*(x + 0.5))) + ((A*A)*((y-1)*(y-1))) - ((A*A)*(B*B));
+    Draw4Points(hdc , xc , yc ,  x, y , color);
+    while(y >=0)
+    {
+        if(d2 > 0)
+        {
+            //y--;
+            dy -= 2*(A*A);
+            d2 -=dy + (A*A);
+        }else
+        {
+            x ++;
+            dx +=2*(B*B);
+            dy -= 2*(A*A);
+            d2 += dx - dy + (A*A);
+        }
+        y--;
+        Draw4Points(hdc , xc , yc , x , y , color);
+    }
 
 }
 
