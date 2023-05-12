@@ -121,7 +121,6 @@ int WINAPI WinMain (HINSTANCE hThisInstance,
 double GetDistanceBetween2Points(int x1,int x2,int y1,int y2)
 {
     return sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
-
 }
 COLORREF color=RGB(0, 0, 0); ///default color (black)
 
@@ -693,7 +692,7 @@ void fillingSquareWithHermite(HDC hdc, Point RecPoint1, Point RecPoint2, Point R
 }
 
 // ----------------------Spline Curves -----------------------------------------//
-void DrawCardinalSpline(HDC hdc, Vertex P[] ,int n,double c)
+/*void DrawCardinalSpline(HDC hdc, Vertex P[] ,int n,double c)
 {
     double c1=1-c;
     Vertex T0(c1*(P[2].x-P[0].x),c1*(P[2].y-P[0].y));
@@ -704,9 +703,9 @@ void DrawCardinalSpline(HDC hdc, Vertex P[] ,int n,double c)
     drawHermite(hdc,v , RGB(0, 255, 0) , INT_MIN ,  INT_MAX);
     T0=T1;
     }
-}
+}*/
 
-//----------------------------------Drawing Ellipse------------------------------// 
+//----------------------------------Drawing Ellipse------------------------------//
 
 
 void Draw4Points(HDC hdc,int xc,int yc, int a, int b,COLORREF color)
@@ -716,7 +715,7 @@ void Draw4Points(HDC hdc,int xc,int yc, int a, int b,COLORREF color)
     SetPixel(hdc, xc-a, yc+b, color);
     SetPixel(hdc, xc-a, yc-b, color);
 }
- 
+
 
 
 DrawEllipse_DirectCartesian(HDC hdc , int xc , int yc , int A , int B , COLORREF color)
@@ -1310,7 +1309,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             Point p3(300, 400);
             Point p4(300, 150);
             fillingRectangleWithBezier(hdc, p1, p2, p3, p4);
-
         }
 
             break;
