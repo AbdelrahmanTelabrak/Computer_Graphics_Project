@@ -123,6 +123,7 @@ double GetDistanceBetween2Points(int x1,int x2,int y1,int y2)
     return sqrt((x1-x2)*(x1-x2)+(y1-y2)*(y1-y2));
 }
 COLORREF color=RGB(0, 0, 0); ///default color (black)
+COLORREF fillColor=RGB(0, 255, 0); ///default filling color (green)
 
 ///-------------------------------------------code line ------------------
 void LineDDA(HDC hdc, int x1, int y1, int x2, int y2)
@@ -573,6 +574,46 @@ void GeneralFill(HDC hdc, vector<POINT> points, int n, COLORREF c) {
 }
 
 //-----------------------------------------------------
+
+//-----------------Flood Filling-----------------------
+void FloodFill(HDC hdc,int x,int y,COLORREF Cb,COLORREF Cf)
+{
+    stack<pair<int, int> >S;
+    pair<int,int> vertex(x,y);
+    S.push(vertex);
+    while(!S.empty())
+    {
+        pair<int,int> v=S.top();
+        S.pop();
+        COLORREF c=GetPixel(hdc, v.first,v.second);
+        if(c==Cb || c==Cf)continue;
+        SetPixel(hdc,v.first,v.second,Cf);
+        pair<int,int> p1(v.first+1,v.second);
+        S.push(p1);
+        pair<int,int> p2(v.first-1,v.second);
+        S.push(p2);
+        pair<int,int> p3(v.first,v.second+1);
+        S.push(p3);
+        pair<int,int> p4(v.first,v.second-1);
+        S.push(p4);
+    }
+}
+
+//------------------------------------------------------------------
+
+//------------------------Recursive Flood Filling-------------------
+void FloodFillRec(HDC hdc,int x,int y,COLORREF Cb,COLORREF Cf)
+{
+    //cout<<"here\n";
+    COLORREF C=GetPixel(hdc,x,y);
+    if(C==Cb || C==Cf)return;
+    SetPixel(hdc,x,y,Cf);
+    FloodFillRec(hdc,x+1,y,Cb,Cf);
+    FloodFillRec(hdc,x-1,y,Cb,Cf);
+    FloodFillRec(hdc,x,y+1,Cb,Cf);
+    FloodFillRec(hdc,x,y-1,Cb,Cf);
+}
+//---------------------------------------------------------------------
 
 
 /*********************************/
@@ -1068,11 +1109,12 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     break;
                 case FloodFilling:
                     click=0;
+                    fillColor = ChooseColor(hwnd, RGB(0,0,0));
                     selectt = 10;
-
                     break;
                 case FloodFillingRecursive :
                     click=0;
+                    fillColor = ChooseColor(hwnd, RGB(0,0,0));
                     selectt = 11;
                     break;
                 case CircleLines:
@@ -1366,6 +1408,16 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             click++;
         }
 
+        //--------Flood Filling algorithm--------------
+        else if (selectt==10){
+            FloodFill(hdc, X2, Y2, color, fillColor);
+        }
+
+        //------------Recursive Flood Filling algorithm-------------
+        else if (selectt==11){
+            FloodFillRec(hdc, X2, Y2, color, fillColor);
+        }
+
         //Filling Square with Hermit Curve
         else if (selectt == 17) {
             Point p1(50, 50);
@@ -1408,7 +1460,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
         else if (selectt == 21)
         {
-            DrawEllipse_Polar(hdc , X1 , Y1 ,  200 , 100 , RGB(255 , 0 , 0));
+            DrawEllipse_Polar(hdc , X1 , Y1 ,  200 , 100 , color);
         }
         else if (selectt == 22)
         {
