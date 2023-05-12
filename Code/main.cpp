@@ -32,9 +32,9 @@ using namespace std;
 #define HermiteSquare 17
 #define BezierRectangle 18
 #define SplineCurve 19
-#define EliipseDirect 20
+#define EllipseDirect 20
 #define EllipsePolar 21
-#define EliipseMidPoint 22
+#define EllipseMidPoint 22
 
 ///defines =============================================================
 
@@ -692,18 +692,7 @@ void fillingSquareWithHermite(HDC hdc, Point RecPoint1, Point RecPoint2, Point R
 }
 
 // ----------------------Spline Curves -----------------------------------------//
-/*void DrawCardinalSpline(HDC hdc, Vertex P[] ,int n,double c)
-{
-    double c1=1-c;
-    Vertex T0(c1*(P[2].x-P[0].x),c1*(P[2].y-P[0].y));
-    for(int i=2;i<n-1;i++)
-    {
-    Vertex T1(c1*(P[i+1].x-P[i-1].x),c1*(P[i+1].y-P[i-1].y));
-    Vector4 v(P[i-1] , T0 , P[i] , T1);
-    drawHermite(hdc,v , RGB(0, 255, 0) , INT_MIN ,  INT_MAX);
-    T0=T1;
-    }
-}*/
+
 
 //----------------------------------Drawing Ellipse------------------------------//
 
@@ -825,21 +814,21 @@ DrawEllipse_MidPoint(HDC hdc , int xc , int yc , int A , int B , COLORREF color)
 
 
 ///--------------------------Choose Color-----------------
-COLORREF ChooseColor(HWND hwndParent, COLORREF crInitial) {
-    static COLORREF customColors[16] = {0};
-    CHOOSECOLOR cc = {0};
-    cc.lStructSize = sizeof(cc);
-    cc.hwndOwner = hwndParent;
-    cc.rgbResult = crInitial;
-    cc.lpCustColors = customColors;
-    cc.Flags = CC_FULLOPEN | CC_RGBINIT;
-
-    if (ChooseColor(&cc)) {
-        return cc.rgbResult;
-    } else {
-        return crInitial;
-    }
-}
+//COLORREF ChooseColor(HWND hwndParent, COLORREF crInitial) {
+//    static COLORREF customColors[16] = {0};
+//    CHOOSECOLOR cc = {0};
+//    cc.lStructSize = sizeof(cc);
+//    cc.hwndOwner = hwndParent;
+//    cc.rgbResult = crInitial;
+//    cc.lpCustColors = customColors;
+//    cc.Flags = CC_FULLOPEN | CC_RGBINIT;
+//
+//    if (ChooseColor(&cc)) {
+//        return cc.rgbResult;
+//    } else {
+//        return crInitial;
+//    }
+//}
 ///------------------------------------------------------
 
 int ListSize=0;
@@ -929,6 +918,27 @@ void CreateMenus(HWND hwnd){
     AppendMenu(Filling, MF_POPUP, (UINT_PTR)HermiteSquare, "Hermite");
 
 
+
+    /// q --> Cardinal Spline Curves -----------------------
+    HMENU SplineCurves = CreateMenu();
+    AppendMenu(SplineCurves,MF_STRING, SplineCurve , "SplineCurve");
+    AppendMenu(MyMenu,MF_POPUP,(UINT_PTR)SplineCurves,"Draw Spline Curve");
+
+
+    ///r --> Drawing Ellipse --------------------------
+    HMENU Ellipse = CreateMenu();
+    ListSize=3;
+    char * algos[ListSize] = {"EllipseDirect","EllipsePolar","EllipseMidPoint"};
+    int algos2[ListSize] = {EllipseDirect,EllipsePolar,EllipseMidPoint};
+    for(int i=0;i<ListSize;i++){
+        AppendMenu(Ellipse,MF_STRING,algos2[i],algos[i]);
+        if(i!=ListSize-1){
+            AppendMenu(Ellipse,MF_SEPARATOR,NULL,NULL); //separate line
+        }
+    }
+    AppendMenu(MyMenu,MF_POPUP,(UINT_PTR)Ellipse,"Ellipse");
+
+
     SetMenu(hwnd,MyMenu);
 }
 
@@ -944,17 +954,20 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
     static int click = 0;
 
     //inputs for clipping
-    static int p1,p2,p3,p4,idx=0;
+    static int p1,p2,p3,p4, xc , yc ,idx=0;
     static double length,width;
     static Vector T;
     static Vector polygon[100];
     //inputs for clipping
 
-
     ///(a) Change the background of window to be white
     HBRUSH brush = CreateSolidBrush(RGB(255, 255, 255));
     SetClassLongPtr(hwnd, GCLP_HBRBACKGROUND, (LONG_PTR)brush);
     ///(a) Change the background of window to be white
+
+
+    /// Variables for Spline
+    static vector<Point> pts;
 
 
 
@@ -1029,9 +1042,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     click=0;
                     selectt = 13;
                     break;
-                case ColorButton:
-                    color = ChooseColor(hwnd, RGB(0,0,0));
-                    break;
+//                case ColorButton:
+//                    color = ChooseColor(hwnd, RGB(0,0,0));
+//                    break;
                 case HermiteSquare:
                     click = 0;
                     selectt = 17;
@@ -1039,8 +1052,22 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 case BezierRectangle:
                     selectt = 18;
                     click = 0;
-
                     break;
+                case SplineCurve:
+                    selectt = 19;
+                    click = 0;
+                    break;
+                case EllipseDirect:
+                    selectt = 20;
+                    break;
+                case EllipsePolar:
+                    selectt = 21;
+                    break;
+                case EllipseMidPoint:
+                    selectt = 22;
+                    break;
+
+
             }
             break;
         case WM_LBUTTONDOWN:
@@ -1051,6 +1078,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             X2 = LOWORD(lParam);
             Y2 = HIWORD(lParam);
             cout<<"X2: "<<X2<<" Y2: "<<Y2<<endl;
+//        case WM_LBUTTONDBLCLK:
+//            xc = LOWORD(lParam);
+//            yc = HIWORD(lParam);
+//            break;
 
         ///for line---------------
             if(selectt==0){
@@ -1309,6 +1340,41 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             Point p3(300, 400);
             Point p4(300, 150);
             fillingRectangleWithBezier(hdc, p1, p2, p3, p4);
+        }
+
+        /// ------- Draw Cardinal Spline curve --------
+        else if(selectt == 19)
+        {
+//            int NumOfpoints=0;
+//            cout << "Enter The number of Points\n";
+//            cin >> NumOfpoints;
+//            int  N = NumOfpoints;
+//            Point pt;
+//            while(NumOfpoints -- )
+//            {
+//              pt.x = LOWORD(lParam);
+//              pt.y = HIWORD(lParam);
+//              pts.push_back(pt);
+//            }
+            //DrawCardinalSpline(hdc , pts, 4 , 99);
+
+        }
+
+        /// ---- Draw Ellipse --- ///
+
+        else if(selectt == 20)
+        {
+
+            DrawEllipse_DirectCartesian(hdc , X1 , Y1 , 100 , 200 , RGB(0 ,0 ,255) );
+        }
+
+        else if (selectt == 21)
+        {
+            DrawEllipse_Polar(hdc , X1 , Y1 ,  200 , 100 , RGB(255 , 0 , 0));
+        }
+        else if (selectt == 22)
+        {
+            DrawEllipse_MidPoint(hdc , X1 , Y1 , 150 , 250 , RGB(210 , 20 , 200));
         }
 
             break;
