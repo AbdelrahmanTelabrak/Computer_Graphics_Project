@@ -41,7 +41,7 @@ using namespace std;
 #define Circle_IterativePolar 26
 #define Circle_Midpoint 27
 #define Circle_ModifiedMidpoint 28
-
+#define Extra_Task 29
 ///defines =============================================================
 
 /*  Declare Windows procedure  */
@@ -1091,6 +1091,55 @@ void DrawCircle_ModifiedMidPoint(HDC hdc, int xc, int yc, int R)
 }
 /// ----------------------circle algorithms -----------------------------------------//
 
+///--------------------------Extra Task-----------------
+void Draw8Points(HDC hdc, int xc, int yc, int a, int b)
+{
+    SetPixel(hdc, xc + a, yc + b, RGB(255, 0, 0));
+    SetPixel(hdc, xc - a, yc + b, RGB(255, 0, 0));
+    SetPixel(hdc, xc - a, yc - b, RGB(255, 0, 0));
+    SetPixel(hdc, xc + a, yc - b, RGB(255, 0, 0));
+    SetPixel(hdc, xc + b, yc + a, RGB(255, 0, 0));
+    SetPixel(hdc, xc - b, yc + a, RGB(255, 0, 0));
+    SetPixel(hdc, xc - b, yc - a, RGB(255, 0, 0));
+    SetPixel(hdc, xc + b, yc - a, RGB(255, 0, 0));
+}
+
+
+
+void drawcircle2(HDC hdc, int xc, int yc, int R, COLORREF color)
+{
+    double x = 0;
+    double y = R;
+    Draw8Points(hdc, xc, yc, R, 0);
+    for(int i =x ;i <y ;i++)
+    {
+        y = sqrt(R * R - i * i);
+        Draw8Points(hdc, xc, yc, i, y);
+    }
+}
+/// 1 touch  2 intersection  0 no
+int check_inersection(int xc1,int yc1,int xc2,int yc2,int r1,int r2)
+{
+    int distance = sqrt(pow(xc1-xc2,2)+pow(yc1-yc2,2));
+    int sum_radius =r1+r2;
+    if(sum_radius > distance)return 2;
+    else if( sum_radius == distance)return 1;
+    else return 0;
+}
+
+void floodfill(HDC hdc, int x, int y, COLORREF bc, COLORREF fc) { //recursive flood fill
+    COLORREF c = GetPixel(hdc, x, y);
+    if (c == bc || c == fc)return;
+
+    SetPixel(hdc, x, y, fc);
+    floodfill(hdc, x, y + 1, bc, fc);
+    floodfill(hdc, x + 1, y, bc, fc);
+    floodfill(hdc, x, y - 1, bc, fc);
+    floodfill(hdc, x - 1, y, bc, fc);
+
+}
+
+///--------------------------Extra Task-----------------
 
 
 ///--------------------------Choose Color-----------------
@@ -1236,12 +1285,26 @@ void CreateMenus(HWND hwnd){
 
     AppendMenu(MyMenu,MF_POPUP,(UINT_PTR)Circle,"Circle");
 
+    ///--------------------------Extra Task-----------------
+    HMENU Extra=CreateMenu();
 
+
+    ListSize=1;
+    char* types[ListSize]= {"Intersecrion_circle"};
+    int types2[ListSize]= {Extra_Task};
+
+    for(int i=0; i<ListSize; i++)
+    {
+        AppendMenu(Extra,MF_STRING,types2[i],types[i]);
+        if(i!=ListSize-1) AppendMenu(Extra,MF_SEPARATOR,NULL,NULL);
+    }
+
+    AppendMenu(MyMenu,MF_POPUP,(UINT_PTR)Extra,"Extra");
 
     SetMenu(hwnd,MyMenu);
 }
 
-
+int circle1_x,circle1_y,circle2_x,circle2_y,circle1_r,circle2_r;//save for exrta task
 LPCSTR mouse=IDC_ARROW; //default for mouse
 int selectt = -1;
 int X1,Y1,X2,Y2;//inputs for line
@@ -1392,8 +1455,14 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 case Circle_ModifiedMidpoint:
                     selectt = 27;
                     break;
+                case Extra_Task:
+                    selectt =28;
+                    click=0;
+                    break;
+
             }
             break;
+
         case WM_LBUTTONDOWN:
             X1 = LOWORD(lParam);
             Y1 = HIWORD(lParam);
@@ -1401,6 +1470,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         case WM_RBUTTONDOWN:
             X2 = LOWORD(lParam);
             Y2 = HIWORD(lParam);
+            click++;
             cout<<"X2: "<<X2<<" Y2: "<<Y2<<endl;
 //        case WM_LBUTTONDBLCLK:
 //            xc = LOWORD(lParam);
@@ -1782,7 +1852,37 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             double r=GetDistanceBetween2Points(X1,X2,Y1,Y2);
             DrawCircle_ModifiedMidPoint(hdc,X1,Y1,r);
         }
+        else if(selectt==28){
+         double r = sqrt(pow(Y2 - Y1, 2)) + sqrt(pow(X2 - X1, 2));
+         drawcircle2(hdc, X1, Y1, r,RGB(255,0,0));
 
+          if(click==1){
+            circle1_x=X1;circle1_y=Y1;circle1_r=r;
+
+           }
+          if(click==2){
+            circle2_x=X1;circle2_y=Y1;circle2_r=r;
+
+          }
+        cout<<click<<"\n";
+        if(click==2){
+
+             if(check_inersection(circle1_x,circle1_y,circle2_x,circle2_y,circle1_r,circle2_r)==0){
+               cout<< "There is No Intersection ";
+             }
+            else if(check_inersection(circle1_x,circle1_y,circle2_x,circle2_y,circle1_r,circle2_r)==1){
+            cout<< " External Touch";
+           }
+           else{
+                double md_x=(circle1_x+circle2_x)/2.0;
+                double md_y=(circle2_y+circle1_y)/2.0;
+                floodfill(hdc , md_x ,md_y,RGB(255,0,0),RGB(220,220,0));
+                cout<<"Intersection";
+          }
+
+
+         }
+        }
 
             break;
         case WM_SETCURSOR:
