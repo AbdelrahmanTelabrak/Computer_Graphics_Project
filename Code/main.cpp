@@ -36,6 +36,11 @@ using namespace std;
 #define EllipsePolar 21
 #define EllipseMidPoint 22
 #define ClearButton 23
+#define Circle_Direct 24
+#define Circle_Polar 25
+#define Circle_IterativePolar 26
+#define Circle_Midpoint 27
+#define Circle_ModifiedMidpoint 28
 
 ///defines =============================================================
 
@@ -991,6 +996,101 @@ DrawEllipse_MidPoint(HDC hdc , int xc , int yc , int A , int B , COLORREF color)
 
 }
 
+/// ----------------------circle algorithms -----------------------------------------//
+void draw8Points(HDC hdc,int x,int y,int xc,int yc)
+{
+    SetPixel(hdc,xc+x,yc+y,color);
+    SetPixel(hdc,xc-x,yc+y,color);
+    SetPixel(hdc,xc+x,yc-y,color);
+    SetPixel(hdc,xc-x,yc-y,color);
+    SetPixel(hdc,xc-y,yc+x,color);
+    SetPixel(hdc,xc+y,yc-x,color);
+    SetPixel(hdc,xc+y,yc+x,color);
+    SetPixel(hdc,xc-y,yc-x,color);
+}
+void DrawCircle_Direct(HDC hdc, int xc, int yc, int R) //x power 2 + y power 2 = R power 2
+{
+    int x = 0;
+    double y = R;
+    draw8Points(hdc, x, Round(y), xc, yc);
+    while (x < y)
+    {
+        x++;
+        y = sqrt((double)R * R - x * x);
+        draw8Points(hdc, x, Round(y), xc, yc);
+    }
+}
+void DrawCircle_Polar(HDC hdc, int xc, int yc, int R)
+{
+    double x = R, y = 0;
+    double theta = 0;
+    draw8Points(hdc, x, Round(y), xc, yc);
+    while (x > y)
+    {
+        theta += double(1.0 / R);
+        x = R * cos(theta);
+        y = R * sin(theta);
+        draw8Points(hdc, x, Round(y), xc, yc);
+    }
+}
+void DrawCircle_Iterative(HDC hdc, int xc, int yc, int R)
+{
+    double x = R, y = 0, dtheta = 1.0 / R, ct = cos(dtheta), st = sin(dtheta);
+    draw8Points(hdc, x, Round(y), xc, yc);
+    while (x > y)
+    {
+        double x1 = x * ct - y * st,
+               y1 = y * ct + x * st;
+        x = x1, y = y1;
+        draw8Points(hdc, x, Round(y), xc, yc);
+    }
+}
+void DrawCircle_MidPoint(HDC hdc, int xc, int yc, int R)
+{
+    int x = 0, y = R, d = 1 - R;
+    draw8Points(hdc, x, Round(y), xc, yc);
+    while (x < y)
+    {
+        if (d < 0) ///points inside circle
+        {
+            d += 2 * x + 3;
+        }
+        else
+        {
+            d += 2 * (x - y) + 5;
+            y--;
+        }
+        x++;
+        draw8Points(hdc, x, Round(y), xc, yc);
+    }
+}
+void DrawCircle_ModifiedMidPoint(HDC hdc, int xc, int yc, int R)
+{
+    int x = 0, y = R, d = 1 - R, d1 = 3, d2 = 5 - 2 * R;
+    draw8Points(hdc, x, Round(y), xc, yc);
+    while (x < y)
+    {
+        if (d < 0)
+        {
+            d += d1;
+            d2 += 2;
+            d1 += 2;
+            x++;
+        }
+        else
+        {
+            d += d2;
+            d2 += 4;
+            d1 += 2;
+            x++;
+            y--;
+        }
+        draw8Points(hdc, x, Round(y), xc, yc);
+    }
+
+}
+/// ----------------------circle algorithms -----------------------------------------//
+
 
 
 ///--------------------------Choose Color-----------------
@@ -1117,6 +1217,25 @@ void CreateMenus(HWND hwnd){
         }
     }
     AppendMenu(MyMenu,MF_POPUP,(UINT_PTR)Ellipse,"Ellipse");
+
+
+
+    ///(j)  Implement Circle algorithms (Direct, Polar, iterative Polar, midpoint and modified Midpoint)-----------------------------
+    HMENU Circle=CreateMenu();
+
+
+    ListSize=5;
+    char* Circle_types[ListSize]= {"Direct","Polar","Iterative Polar","Midpoint","Modified Midpoint"};
+    int Circle1[ListSize]= {Circle_Direct,Circle_Polar,Circle_IterativePolar,Circle_Midpoint,Circle_ModifiedMidpoint};
+
+    for(int i=0; i<ListSize; i++)
+    {
+        AppendMenu(Circle,MF_STRING,Circle1[i],Circle_types[i]);
+        if(i!=ListSize-1) AppendMenu(Circle,MF_SEPARATOR,NULL,NULL);
+    }
+
+    AppendMenu(MyMenu,MF_POPUP,(UINT_PTR)Circle,"Circle");
+
 
 
     SetMenu(hwnd,MyMenu);
@@ -1258,7 +1377,21 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 case ClearButton:
                     InvalidateRect(hwnd, NULL, TRUE);
                     break;
-
+                case Circle_Direct:
+                    selectt = 23;
+                    break;
+                case Circle_Polar:
+                    selectt = 24;
+                    break;
+                case Circle_IterativePolar:
+                    selectt = 25;
+                    break;
+                case Circle_Midpoint:
+                    selectt = 26;
+                    break;
+                case Circle_ModifiedMidpoint:
+                    selectt = 27;
+                    break;
             }
             break;
         case WM_LBUTTONDOWN:
@@ -1620,6 +1753,36 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         {
             DrawEllipse_MidPoint(hdc , X1 , Y1 , 150 , 250 , RGB(210 , 20 , 200));
         }
+
+
+        ///circle algooo----------------///
+            //left click and right click
+        else if(selectt == 23){
+            double r=GetDistanceBetween2Points(X1,X2,Y1,Y2);
+            DrawCircle_Direct(hdc,X1,Y1,r);
+        }
+
+        else if(selectt== 24){
+            double r=GetDistanceBetween2Points(X1,X2,Y1,Y2);
+            DrawCircle_Polar(hdc,X1,Y1,r);
+        }
+
+        else if(selectt== 25){
+            double r=GetDistanceBetween2Points(X1,X2,Y1,Y2);
+            DrawCircle_Iterative(hdc,X1,Y1,r);
+        }
+
+
+        else if(selectt==26){
+            double r=GetDistanceBetween2Points(X1,X2,Y1,Y2);
+            DrawCircle_MidPoint(hdc,X1,Y1,r);
+        }
+
+        else if(selectt==27){
+            double r=GetDistanceBetween2Points(X1,X2,Y1,Y2);
+            DrawCircle_ModifiedMidPoint(hdc,X1,Y1,r);
+        }
+
 
             break;
         case WM_SETCURSOR:
