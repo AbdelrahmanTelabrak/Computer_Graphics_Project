@@ -42,6 +42,8 @@ using namespace std;
 #define Circle_Midpoint 27
 #define Circle_ModifiedMidpoint 28
 #define Extra_Task 29
+#define Save 30
+#define Load 31
 ///defines =============================================================
 
 /*  Declare Windows procedure  */
@@ -1300,8 +1302,159 @@ void CreateMenus(HWND hwnd){
     }
 
     AppendMenu(MyMenu,MF_POPUP,(UINT_PTR)Extra,"Extra");
+    ///--------------------------Extra Task-----------------
+
+
+
+    ///--------------------------Save and Load-----------------
+    HMENU SaveAndLoad = CreateMenu();
+    ListSize = 2;
+    char* Setting[ListSize]= {"Save","Load"};
+    int Setting2[ListSize]= {Save,Load};
+    for(int i=0; i<ListSize; i++)
+    {
+        AppendMenu(SaveAndLoad,MF_STRING,Setting2[i],Setting[i]);
+        if(i!=ListSize-1)AppendMenu(SaveAndLoad,MF_SEPARATOR,NULL,NULL);
+    }
+    AppendMenu(MyMenu,MF_POPUP,(UINT_PTR)SaveAndLoad,"Save and load");
+    ///--------------------------Save and Load-----------------
 
     SetMenu(hwnd,MyMenu);
+}
+
+
+
+
+///function to create file DataBase///
+string str="";
+void createFile(){
+    ofstream file;
+    file.open("data.txt");
+    file << str;
+    file.close();
+}
+///function to create file DataBase///
+
+///functions to write to file///
+/*void WriteAtFile(int x1,int y1,int x2,int y2,int algorithm){
+
+    //in file : index of algorithm , Xstart ,Ystart , Xend, Yend
+}*/
+///functions to write to file///
+
+
+///function to read from file
+void Loadd(HDC hdc){
+
+    ifstream ourfile ("data.txt");
+    string eachLine;
+
+    if(ourfile.is_open()){
+        while(getline(ourfile,eachLine)){
+            string x;
+            vector<string>Line;
+            for(int i=0;i<eachLine.size();i++){
+                if(eachLine[i]==','){
+                    Line.push_back(x);
+                    x="";
+                }else{
+                    x+=eachLine[i];
+                }
+            }
+            Line.push_back(x);
+            x="";
+            int Sz=Line.size();
+            color = stoi(Line[Sz-1]);
+            if(Line[0]=="2"){ //DDA
+                LineDDA(hdc,stoi(Line[1]),stoi(Line[2]),stoi(Line[3]),stoi(Line[4]));
+            }
+            //Midpoint
+            else if(Line[0]=="3"){
+                LineMidPoint(hdc,stoi(Line[1]),stoi(Line[2]),stoi(Line[3]),stoi(Line[4]));
+            }
+
+            else if(Line[0]=="4"){
+                LineParametric(hdc,stoi(Line[1]),stoi(Line[2]),stoi(Line[3]),stoi(Line[4]));
+            }
+
+            else if(Line[0]=="5"){ //ClippingRectanglePoint
+
+                int idx=1;
+                int p1=stoi(Line[idx]);
+                idx++;
+                int p2=stoi(Line[idx]);
+                idx++;
+                int num1=stoi(Line[idx]);
+                idx++;
+                int num2=stoi(Line[idx]);
+                int length=stoi(Line[idx]);
+                idx++;
+                int width=stoi(Line[idx]);
+
+
+                Vector T;T[0]=num1;T[1]=num2;
+                drawRectangle(hdc,T,length,width,color);
+                PointClipping(hdc,p1,p2,T[0],T[1],T[0]+length,T[1]+width);
+            }
+
+            else if(Line[0]=="6"){//ClippingRectangleLine
+                //int idx=1;
+                int p1=stoi(Line[1]);
+                int p2=stoi(Line[2]);
+                int p3=stoi(Line[3]);
+                int p4=stoi(Line[4]);
+                int num1=stoi(Line[5]);
+                int num2=stoi(Line[6]);
+                int length=stoi(Line[7]);
+                int width=stoi(Line[8]);
+
+
+                Vector T;T[0]=num1;T[1]=num2;
+                drawRectangle(hdc,T,length,width,color);
+                CohenSuth(hdc,p1,p2,p3,p4,T[0],T[1],T[0]+length,T[1]+width);
+
+            }
+
+            else if(Line[0]=="ClippingRectanglePolygon"){ //ClippingRectanglePolygon
+
+                int sides = stoi(Line[1]);
+                Vector poly[sides];
+                int idx=2;
+                for(int i=0;i<sides;i++){
+                    poly[i]=Vector(stoi(Line[idx++]),stoi(Line[idx++]));
+                    swap(poly[i][0],poly[i][1]);
+                }
+                int num1=stoi(Line[idx++]),num2=stoi(Line[idx++]),length=stoi(Line[idx++]),width=stoi(Line[idx]);
+                Vector T;T[0]=num1;
+                T[1]=num2;
+
+                drawRectangle(hdc,T,length,width,color);
+                PolygonClip(hdc, poly, sides, T[0], T[1], T[0]+length, T[1]+width);
+            }
+
+            else if(Line[0]=="5"){
+
+
+            }
+
+            else if(Line[0]=="5"){
+
+
+            }
+
+
+            else if(Line[0]=="5"){
+
+
+            }
+
+            else if(Line[0]=="5"){
+
+
+            }
+        }
+    }
+
 }
 
 int circle1_x,circle1_y,circle2_x,circle2_y,circle1_r,circle2_r;//save for exrta task
@@ -1368,6 +1521,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 case ClippingRectanglePolygon:
                     click=0;
                     selectt = 5;
+                    stat=false;
                     break;
                 case ClippingSquarePoint:
                     click=0;
@@ -1439,6 +1593,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     break;
                 case ClearButton:
                     InvalidateRect(hwnd, NULL, TRUE);
+                    str="";
                     break;
                 case Circle_Direct:
                     selectt = 23;
@@ -1459,6 +1614,12 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     selectt =28;
                     click=0;
                     break;
+                case Save:
+                    createFile();
+                    break;
+                case Load:
+                    Loadd(hdc);
+                    break;
 
             }
             break;
@@ -1470,7 +1631,9 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         case WM_RBUTTONDOWN:
             X2 = LOWORD(lParam);
             Y2 = HIWORD(lParam);
-            click++;
+            if(selectt==28){ ///for Ahmed Saeed
+                click++;
+            }
             cout<<"X2: "<<X2<<" Y2: "<<Y2<<endl;
 //        case WM_LBUTTONDBLCLK:
 //            xc = LOWORD(lParam);
@@ -1478,12 +1641,16 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 //            break;
 
         ///for line---------------
+            //in file : index of algorithm , Xstart ,Ystart , Xend, Yend ,color
             if(selectt==0){
                 LineDDA(hdc,X1,Y1,X2,Y2);
+                str+= to_string(DDA) +"," + to_string(X1)+ "," +to_string(Y1) + "," + to_string(X2) + "," + to_string(Y2)+ "," + to_string(color) + "\n";
             }else if(selectt==1){
                 LineMidPoint(hdc,X1,Y1,X2,Y2);
+                str+= to_string(Midpoint) +"," + to_string(X1)+ "," +to_string(Y1) + "," + to_string(X2) + "," + to_string(Y2)+ "," + to_string(color) + "\n";
             }else if(selectt==2){
                 LineParametric(hdc,X1,Y1,X2,Y2);
+                str+= to_string(Parametric) +"," + to_string(X1)+ "," +to_string(Y1) + "," + to_string(X2) + "," + to_string(Y2)+ "," + to_string(color) + "\n";
             }
         ///for line---------------
 
@@ -1524,8 +1691,10 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     //get points for ever (so not increment click)
                     p1 = LOWORD(lParam);
                     p2 = HIWORD(lParam);
-
+                    str+= to_string(ClippingRectanglePoint) +","+to_string(p1)+","+to_string(p2)+","+to_string(T[0])+","+to_string(T[1])+","+to_string(length)+","+to_string(width)+","+to_string(color)+"\n";
                     PointClipping(hdc,p1,p2,T[0],T[1],T[0]+length,T[1]+width);
+
+
                     break;
                 }
             }
@@ -1533,7 +1702,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
 
 
-        ///for clipping Rectangle Point ---------
+        ///for clipping Rectangle Line ---------
             else if(selectt==4){
                 if(click==0){
                     click++;
@@ -1569,19 +1738,22 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     p3=LOWORD(lParam);
                     p4= HIWORD(lParam);
                     CohenSuth(hdc,p1,p2,p3,p4,T[0],T[1],T[0]+length,T[1]+width);
-
+                    // in file : index of algorithm , Xstatr ,Ystart ,Xend , Yend, Rectangele , length, width ,color
+                    str+=to_string(ClippingRectangleLine)+","+to_string(p1)+","+to_string(p2)+","+to_string(p3)+","+to_string(p4)+","+to_string(T[0])+","+to_string(T[1])+","+to_string(length)+","+to_string(width)+","+to_string(color)+"\n";
                     click=3;//to get another line
                     break;
                 }
             }
-        ///for clipping Rectangle Point ---------
+        ///for clipping Rectangle Line ---------
 
 
 
 
         ///for clipping Rectangle Polygon ---------
             else if(selectt==5){
-                if(stat==false){
+                cout<<str<<endl;
+                if(stat==false){ //to save name of algorithm first time only
+                    str+="ClippingRectanglePolygon,"+to_string(sides)+",";
                     stat=true;
                 }
 
@@ -1615,6 +1787,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     if(idx!=sides-1){
                         idx++;
                     }else {
+                        str+=to_string(T[0])+","+to_string(T[1])+","+to_string(length)+","+to_string(width)+","+to_string(color)+"\n";
                         PolygonClip(hdc,polygon,sides,T[0],T[1],T[0]+length,T[1]+width);
                         idx=0;
                         stat=false;
@@ -1646,6 +1819,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     //get points for ever (so not increment click)
                     p1=LOWORD(lParam);
                     p2=HIWORD(lParam);
+                    str+=to_string(ClippingSquarePoint),","+to_string(p1)+","+to_string(p2)+","+to_string(T[0])+","+to_string(T[1])+","+to_string(length)+","+to_string(color)+"\n";
                     PointClipping(hdc,p1,p2,T[0],T[1],T[0]+length,T[1]+length);
                     break;
                 }
@@ -1679,7 +1853,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 p3=LOWORD(lParam);
                 p4= HIWORD(lParam);
                 CohenSuth(hdc,p1,p2,p3,p4,T[0],T[1],T[0]+length,T[1]+length);
-
+                str+=to_string(ClippingSquareLine) +","+to_string(p1)+","+to_string(p2)+","+to_string(p3)+","+to_string(p4)+","+to_string(T[0])+","+to_string(T[1])+","+to_string(length)+","+to_string(color)+"\n";
                 click=2;//to get another line
                 break;
             }
