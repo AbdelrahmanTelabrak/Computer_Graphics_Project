@@ -1432,25 +1432,115 @@ void Loadd(HDC hdc){
                 PolygonClip(hdc, poly, sides, T[0], T[1], T[0]+length, T[1]+width);
             }
 
-            else if(Line[0]=="5"){
-
-
+            else if(Line[0]=="8"){ //ClippingSquarePoint
+                int p1 = stoi(Line[1]);
+                int p2 = stoi(Line[2]);
+                Vector T;T[0]=stoi(Line[3]);T[1]=stoi(Line[4]);
+                int length = stoi(Line[5]);
+                drawRectangle(hdc,T,length,length,color);
+                PointClipping(hdc,p1,p2,T[0],T[1],T[0]+length,T[1]+length);
             }
 
-            else if(Line[0]=="5"){
-
-
+            else if(Line[0]=="9"){ //ClippingSquareLine
+                int p1 = stoi(Line[1]);
+                int p2 = stoi(Line[2]);
+                int p3 = stoi(Line[3]);
+                int p4 = stoi(Line[4]);
+                Vector T;T[0]=stoi(Line[5]);T[1]=stoi(Line[6]);
+                int length = stoi(Line[7]);
+                drawRectangle(hdc,T,length,length,color);
+                CohenSuth(hdc,p1,p2,p3,p4,T[0],T[1],T[0]+length,T[1]+length);
             }
 
 
-            else if(Line[0]=="5"){
+            else if(Line[0]=="10"){
+                //don't work
+                int Sides = stoi(Line[1]);
+                int idx=2;
+                POINT pt;
+                for(int i=0;i<Sides;i++){
+                    pt.x=stoi(Line[idx]);
+                    idx++;
+                    pt.y=stoi(Line[idx]);
+                    idx++;
+                    //cout<<"pt.x: "<<pt.x<<" pt.y: "<<pt.y<<"\n";
+                    points.push_back(pt);
+                }
+                for(auto i:points){
+                    cout<<"pt.x: "<<i.x<<" pt.y: "<<i.y<<"\n";
+                }
+                cout<<endl;
 
-
+                ConvexFill(hdc, points, Sides, color);
+                points.clear();
             }
 
-            else if(Line[0]=="5"){
+            else if(Line[0]=="11"){
+                int Sides = stoi(Line[1]);
+                int idx=2;
+                POINT pt;
+                for(int i=0;i<Sides;i++){
+                    pt.x=stoi(Line[idx]);
+                    idx++;
+                    pt.y=stoi(Line[idx]);
+                    idx++;
+                    //cout<<"pt.x: "<<pt.x<<" pt.y: "<<pt.y<<"\n";
+                    points.push_back(pt);
+                }
+                for(auto i:points){
+                    cout<<"pt.x: "<<i.x<<" pt.y: "<<i.y<<"\n";
+                }
+                GeneralFill(hdc, points, Sides, color);
+                points.clear();
+
+            }
+            else if(Line[0]=="12"){
+                FloodFill(hdc, stoi(Line[1]), stoi(Line[2]), color, fillColor);
+            }
+            else if(Line[0]=="13"){
+                FloodFillRec(hdc, stoi(Line[1]), stoi(Line[2]), color, fillColor);
+            }
 
 
+
+            else if(Line[0]=="17"){
+                Point p1(stoi(Line[1]), stoi(Line[2]));
+                Point p2(stoi(Line[3]), stoi(Line[4]));
+                Point p3(stoi(Line[5]), stoi(Line[6]));
+                Point p4(stoi(Line[7]), stoi(Line[8]));
+                fillingSquareWithHermite(hdc, p1, p2, p3, p4);
+            }else if(Line[0]=="18"){
+                Point p1(stoi(Line[1]), stoi(Line[2]));
+                Point p2(stoi(Line[3]), stoi(Line[4]));
+                Point p3(stoi(Line[5]), stoi(Line[6]));
+                Point p4(stoi(Line[7]), stoi(Line[8]));
+                fillingRectangleWithBezier(hdc, p1, p2, p3, p4);
+            }
+
+            else if(Line[0]=="SplineCurve"){
+                Vector pts[stoi(Line[1])];
+                int idx=2;
+                for(int i=0;i<stoi(Line[1]);i++){
+                    pts[i]=Vector(stoi(Line[idx++]), stoi(Line[idx++]));
+                    swap(pts[i][0],pts[i][1]);
+                }
+                DrawCardinalSpline(hdc,pts,1);
+            }else if(Line[0]=="20"){
+                DrawEllipse_DirectCartesian(hdc , stoi(Line[1]) ,stoi( Line[2]) , stoi(Line[3]) , stoi(Line[4]) , stoi(Line[5]) );
+            }else if(Line[0]=="21"){
+                DrawEllipse_Polar(hdc , stoi(Line[1]) , stoi(Line[2]) , stoi(Line[3]) , stoi(Line[4]) , stoi(Line[5]) );
+            }else if(Line[0]=="22"){
+                DrawEllipse_MidPoint(hdc , stoi(Line[1]) , stoi(Line[2]) , stoi(Line[3]) ,stoi( Line[4]) , stoi(Line[5]) );
+            }else if(Line[0]=="24"){
+                DrawCircle_Direct(hdc,stoi(Line[1]),stoi(Line[2]),stoi(Line[3]));
+            }else if(Line[0]=="25"){
+                DrawCircle_Polar(hdc,stoi(Line[1]),stoi(Line[2]),stoi(Line[3]));
+            }else if(Line[0]=="26"){
+                DrawCircle_Iterative(hdc,stoi(Line[1]),stoi(Line[2]),stoi(Line[3]));
+            }else if(Line[0]=="27"){
+                DrawCircle_MidPoint(hdc,stoi(Line[1]),stoi(Line[2]),stoi(Line[3]));
+            }else if(Line[0]=="28"){
+                DrawCircle_ModifiedMidPoint(hdc,stoi(Line[1]),stoi(Line[2]),stoi(Line[3]));
             }
         }
     }
@@ -1469,7 +1559,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 {
     HDC hdc= GetDC(hwnd);
     static int click = 0;
-
+    static string poi="";
     //inputs for clipping
     static int p1,p2,p3,p4, xc , yc ,idx=0;
     static double length,width;
@@ -1534,12 +1624,14 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 case ConvexFilling:
                     click=0;
                     selectt = 8;
+                    stat=false;
                     cout<<"Enter the Number of points:\n";
                     cin>>numberOfPoints;
                     break;
                 case GeneralFilling:
                     click=0;
                     selectt = 9;
+                    stat=false;
                     cout<<"Enter the Number of points:\n";
                     cin>>numberOfPoints;
                     break;
@@ -1579,6 +1671,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                 case SplineCurve:
                     click=0;
                     selectt = 19;
+                    stat=false;
                     cout<<"Enter the Number of points:\n";
                     cin>>numberOfPoints;
                     break;
@@ -1756,7 +1849,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     str+="ClippingRectanglePolygon,"+to_string(sides)+",";
                     stat=true;
                 }
-
                 if(click==0){
                     click++;
                     T[0]=LOWORD(lParam);
@@ -1784,6 +1876,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
                     break;
                 }else if(click==3){
                     polygon[idx] = Vector(LOWORD(lParam), HIWORD(lParam));
+                    str+=to_string(polygon[idx][0])+","+to_string(polygon[idx][1])+",";
                     if(idx!=sides-1){
                         idx++;
                     }else {
@@ -1862,9 +1955,12 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
         ///For Convex Filling --------
         else if (selectt==8){
+
             if(click==numberOfPoints){
                 ConvexFill(hdc, points, numberOfPoints, color);
                 click=0;
+                str+=to_string(ConvexFilling)+","+to_string(numberOfPoints)+","+poi+to_string(color)+"\n";
+                //cout<<str<<endl;
                 points.clear();
                 break;
             }
@@ -1873,6 +1969,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             pt.y = HIWORD(lParam);
             points.push_back(pt);
             click++;
+            poi+=to_string(pt.x)+","+to_string(pt.y)+",";
         }
         ///---------------------------
 
@@ -1881,6 +1978,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             if(click==numberOfPoints){
                 GeneralFill(hdc, points, numberOfPoints, color);
                 click=0;
+                str+=to_string(GeneralFilling)+","+to_string(numberOfPoints)+","+poi+to_string(color)+"\n";
                 points.clear();
                 break;
             }
@@ -1889,22 +1987,26 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             pt.y = HIWORD(lParam);
             points.push_back(pt);
             click++;
+            poi+=to_string(pt.x)+","+to_string(pt.y)+",";
         }
 
         //--------Flood Filling algorithm--------------
         else if (selectt==10){
             FloodFill(hdc, X2, Y2, color, fillColor);
+            str += to_string(FloodFilling) + "," + to_string(X2)+ "," +to_string(Y2) + "," + to_string(color) + "\n";
         }
 
         //------------Recursive Flood Filling algorithm-------------
         else if (selectt==11){
             FloodFillRec(hdc, X2, Y2, color, fillColor);
+            str += to_string(FloodFillingRecursive) + "," + to_string(X2)+ "," +to_string(Y2) + "," + to_string(color) + "\n";
         }
 
         //------------Fill Circle quarter with lines---------------
         else if (selectt==12){
             if (circleQuarter==1){
                 LineDDA(hdc, X2, Y2, X2, round(Y2-circleRadius));
+                //str+= to_string(DDA) +"," + to_string(X2)+ "," +to_string(Y2) + "," + to_string(X2) + "," + to_string(round(Y2-circleRadius))+ "," + to_string(color) + "\n";
                 LineDDA(hdc, X2, Y2, round(X2+circleRadius), Y2);
             }
             else if (circleQuarter==2){
@@ -1955,6 +2057,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             Point p2(50, 350);
             Point p3(400, 350);
             Point p4(400, 50);
+            str+=to_string(HermiteSquare)+","+to_string(50)+","+to_string(50)+","+to_string(50)+","+to_string(350)+","+to_string(400)+","+to_string(350)+","+to_string(400)+","+to_string(50)+","+to_string(color)+"\n";
             cout << " Hermite";
             fillingSquareWithHermite(hdc, p1, p2, p3, p4);
 
@@ -1965,19 +2068,26 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
             Point p2(100, 400);
             Point p3(300, 400);
             Point p4(300, 150);
+            str+=to_string(HermiteSquare)+","+to_string(100)+","+to_string(150)+","+to_string(100)+","+to_string(400)+","+to_string(300)+","+to_string(400)+","+to_string(300)+","+to_string(150)+","+to_string(color)+"\n";
             fillingRectangleWithBezier(hdc, p1, p2, p3, p4);
         }
 
         /// ------- Draw Cardinal Spline curve --------
         else if(selectt == 19)
         {
-
+            if(stat==false){
+                str+="SplineCurve,"+to_string(numberOfPoints)+",";
+                stat=true;
+            }
             pts[idx]=Vector(LOWORD(lParam), HIWORD(lParam));
+            str+=to_string(pts[idx][0])+","+to_string(pts[idx][1])+",";
             if(idx!=numberOfPoints-1){
                 idx++;
             }else{
                 DrawCardinalSpline(hdc,pts,1);
+                str+=to_string(color)+"\n";
                 idx=0;
+                stat=false;
             }
         }
 
@@ -1986,34 +2096,41 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         else if(selectt == 20)
         {
 
-            DrawEllipse_DirectCartesian(hdc , X1 , Y1 , 100 , 200 , RGB(0 ,0 ,255) );
+            DrawEllipse_DirectCartesian(hdc , X1 , Y1 , 100 , 200 , color );
+            str+=to_string(EllipseDirect)+","+to_string(X1)+","+to_string(Y1)+","+to_string(100)+","+to_string(200)+","+to_string(color)+"\n";
         }
 
         else if (selectt == 21)
         {
             DrawEllipse_Polar(hdc , X1 , Y1 ,  200 , 100 , color);
+            str+=to_string(EllipsePolar)+","+to_string(X1)+","+to_string(Y1)+","+to_string(200)+","+to_string(100)+","+to_string(color)+"\n";
         }
         else if (selectt == 22)
         {
-            DrawEllipse_MidPoint(hdc , X1 , Y1 , 150 , 250 , RGB(210 , 20 , 200));
+            DrawEllipse_MidPoint(hdc , X1 , Y1 , 150 , 250 , color);
+            str+=to_string(EllipseMidPoint)+","+to_string(X1)+","+to_string(Y1)+","+to_string(150)+","+to_string(250)+","+to_string(color)+"\n";
         }
 
 
         ///circle algooo----------------///
             //left click and right click
         else if(selectt == 23){
+
             double r=GetDistanceBetween2Points(X1,X2,Y1,Y2);
             DrawCircle_Direct(hdc,X1,Y1,r);
+            str+=to_string(Circle_Direct)+","+to_string(X1)+","+to_string(Y1)+","+to_string(r)+"\n";
         }
 
         else if(selectt== 24){
             double r=GetDistanceBetween2Points(X1,X2,Y1,Y2);
             DrawCircle_Polar(hdc,X1,Y1,r);
+            str+=to_string(Circle_Polar)+","+to_string(X1)+","+to_string(Y1)+","+to_string(r)+"\n";
         }
 
         else if(selectt== 25){
             double r=GetDistanceBetween2Points(X1,X2,Y1,Y2);
             DrawCircle_Iterative(hdc,X1,Y1,r);
+            str+=to_string(Circle_IterativePolar)+","+to_string(X1)+","+to_string(Y1)+","+to_string(r)+"\n";
         }
 
 
@@ -2025,8 +2142,12 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
         else if(selectt==27){
             double r=GetDistanceBetween2Points(X1,X2,Y1,Y2);
             DrawCircle_ModifiedMidPoint(hdc,X1,Y1,r);
+            str+=to_string(Circle_ModifiedMidpoint)+","+to_string(X1)+","+to_string(Y1)+","+to_string(r)+"\n";
         }
+
+        ///extra task///////////////////////
         else if(selectt==28){
+
          double r = sqrt(pow(Y2 - Y1, 2)) + sqrt(pow(X2 - X1, 2));
          drawcircle2(hdc, X1, Y1, r,RGB(255,0,0));
 
@@ -2039,6 +2160,7 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
           }
         cout<<click<<"\n";
+
         if(click==2){
 
              if(check_inersection(circle1_x,circle1_y,circle2_x,circle2_y,circle1_r,circle2_r)==0){
@@ -2057,7 +2179,6 @@ LRESULT CALLBACK WindowProcedure (HWND hwnd, UINT message, WPARAM wParam, LPARAM
 
          }
         }
-
             break;
         case WM_SETCURSOR:
             SetCursor(LoadCursor(NULL,mouse));

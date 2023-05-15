@@ -1,5 +1,5 @@
 # depslib dependency file v1.0
-1684092335 source:d:\university\computer graphics\project\code\main.cpp
+1684169261 source:d:\university\computer graphics\project\code\main.cpp
 	<tchar.h>
 	<windows.h>
 	<bits/stdc++.h>
